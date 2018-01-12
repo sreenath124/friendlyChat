@@ -66,6 +66,15 @@ FriendlyChat.prototype.initFirebase = function() {
 // Loads chat messages history and listens for upcoming ones.
 FriendlyChat.prototype.loadMessages = function() {
   this.messagesRef = this.database.ref('messages');
+
+var messageArray = [];
+   this.messagesRef.once('value', (snapshot) => {
+     snapshot.forEach((childSnapshot) => {
+       let childData = childSnapshot.val();
+       debugger;
+     });    
+   });
+  
   // Make sure we remove all previous listeners.
   this.messagesRef.off();
 
@@ -74,8 +83,8 @@ FriendlyChat.prototype.loadMessages = function() {
     var val = data.val();
     this.displayMessage(data.key, val.name, val.text, val.photoUrl, val.imageUrl);
   }.bind(this);
-  this.messagesRef.limitToLast(12).on('child_added', setMessage);
-  this.messagesRef.limitToLast(12).on('child_changed', setMessage);
+  this.messagesRef.on('child_added', setMessage);
+  this.messagesRef.on('child_changed', setMessage);
 };
 
 // Saves a new message on the Firebase DB.
@@ -85,20 +94,35 @@ FriendlyChat.prototype.saveMessage = function(e) {
   if (this.messageInput.value && this.checkSignedInWithMessage()) {
     var currentUser = this.auth.currentUser;
     // Add a new message entry to the Firebase Database.
+
     debugger;
+    var messArr = [];
+    let leadsRef = firebase.database().ref('messages');
+     leadsRef.once('value', (snapshot) => {
+       snapshot.forEach((childSnapshot) => {
+         let childData = childSnapshot.val().text;
+         messArr.push(childData);
+       });    
+   });
 
+     if(messArr.indexOf(this.messageInput.value) == -1){
+           this.messagesRef.push({
+        name: currentUser.displayName,
+        text: this.messageInput.value,
+        photoUrl: currentUser.photoURL || '/images/profile_placeholder.png'
+      }).then(function() {
+        // Clear message text field and SEND button state.
 
-    this.messagesRef.push({
-      name: currentUser.displayName,
-      text: this.messageInput.value,
-      photoUrl: currentUser.photoURL || '/images/profile_placeholder.png'
-    }).then(function() {
-      // Clear message text field and SEND button state.
-      FriendlyChat.resetMaterialTextfield(this.messageInput);
-      this.toggleButton();
-    }.bind(this)).catch(function(error) {
-      console.error('Error writing new message to Firebase Database', error);
-    });
+        FriendlyChat.resetMaterialTextfield(this.messageInput);
+        this.toggleButton();
+      }.bind(this)).catch(function(error) {
+        console.error('Error writing new message to Firebase Database', error);
+      });
+     }else{
+      alert("duplicate");
+     }
+
+   
 
   }
 };
